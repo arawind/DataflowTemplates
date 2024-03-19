@@ -104,6 +104,7 @@ public class InformationSchemaScannerIT {
             + " `id`                                    INT64 NOT NULL,"
             + " `bool_field`                            BOOL,"
             + " `int64_field`                           INT64,"
+            + " `float32_field`                         FLOAT32,"
             + " `float64_field`                         FLOAT64,"
             + " `string_field`                          STRING(76),"
             + " `bytes_field`                           BYTES(13),"
@@ -111,6 +112,7 @@ public class InformationSchemaScannerIT {
             + " `date_field`                            DATE,"
             + " `arr_bool_field`                        ARRAY<BOOL>,"
             + " `arr_int64_field`                       ARRAY<INT64>,"
+            + " `arr_float32_field`                     ARRAY<FLOAT32>,"
             + " `arr_float64_field`                     ARRAY<FLOAT64>,"
             + " `arr_string_field`                      ARRAY<STRING(15)>,"
             + " `arr_bytes_field`                       ARRAY<BYTES(MAX)>,"
@@ -137,6 +139,7 @@ public class InformationSchemaScannerIT {
     // Check types/sizes.
     assertThat(table.column("bool_field").type(), equalTo(Type.bool()));
     assertThat(table.column("int64_field").type(), equalTo(Type.int64()));
+    assertThat(table.column("float32_field").type(), equalTo(Type.float32()));
     assertThat(table.column("float64_field").type(), equalTo(Type.float64()));
     assertThat(table.column("string_field").type(), equalTo(Type.string()));
     assertThat(table.column("string_field").size(), equalTo(76));
@@ -146,6 +149,7 @@ public class InformationSchemaScannerIT {
     assertThat(table.column("date_field").type(), equalTo(Type.date()));
     assertThat(table.column("arr_bool_field").type(), equalTo(Type.array(Type.bool())));
     assertThat(table.column("arr_int64_field").type(), equalTo(Type.array(Type.int64())));
+    assertThat(table.column("arr_float32_field").type(), equalTo(Type.array(Type.float32())));
     assertThat(table.column("arr_float64_field").type(), equalTo(Type.array(Type.float64())));
     assertThat(table.column("arr_string_field").type(), equalTo(Type.array(Type.string())));
     assertThat(table.column("arr_string_field").size(), equalTo(15));
@@ -182,6 +186,7 @@ public class InformationSchemaScannerIT {
             + " \"id\"                                    bigint NOT NULL,"
             + " \"bool_field\"                            boolean,"
             + " \"int64_field\"                           bigint,"
+            + " \"float32_field\"                         real,"
             + " \"float64_field\"                         double precision,"
             + " \"string_field\"                          character varying(76),"
             + " \"bytes_field\"                           bytea,"
@@ -190,6 +195,7 @@ public class InformationSchemaScannerIT {
             + " \"date_field\"                            date,"
             + " \"arr_bool_field\"                        boolean[],"
             + " \"arr_int64_field\"                       bigint[],"
+            + " \"arr_float32_field\"                     real[],"
             + " \"arr_float64_field\"                     double precision[],"
             + " \"arr_string_field\"                      character varying(15)[],"
             + " \"arr_bytes_field\"                       bytea[],"
@@ -218,6 +224,7 @@ public class InformationSchemaScannerIT {
     // Check types/sizes.
     assertThat(table.column("bool_field").type(), equalTo(Type.pgBool()));
     assertThat(table.column("int64_field").type(), equalTo(Type.pgInt8()));
+    assertThat(table.column("float32_field").type(), equalTo(Type.pgFloat4()));
     assertThat(table.column("float64_field").type(), equalTo(Type.pgFloat8()));
     assertThat(table.column("string_field").type(), equalTo(Type.pgVarchar()));
     assertThat(table.column("string_field").size(), equalTo(76));
@@ -227,6 +234,7 @@ public class InformationSchemaScannerIT {
     assertThat(table.column("date_field").type(), equalTo(Type.pgDate()));
     assertThat(table.column("arr_bool_field").type(), equalTo(Type.pgArray(Type.pgBool())));
     assertThat(table.column("arr_int64_field").type(), equalTo(Type.pgArray(Type.pgInt8())));
+    assertThat(table.column("arr_float32_field").type(), equalTo(Type.pgArray(Type.pgFloat4())));
     assertThat(table.column("arr_float64_field").type(), equalTo(Type.pgArray(Type.pgFloat8())));
     assertThat(table.column("arr_string_field").type(), equalTo(Type.pgArray(Type.pgVarchar())));
     assertThat(table.column("arr_string_field").size(), equalTo(15));

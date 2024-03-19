@@ -40,6 +40,10 @@ public final class SizedType {
         return "INT64";
       case PG_INT8:
         return "bigint";
+      case FLOAT32:
+        return "FLOAT32";
+      case PG_FLOAT4:
+        return "real";
       case FLOAT64:
         return "FLOAT64";
       case PG_FLOAT8:
@@ -112,6 +116,9 @@ public final class SizedType {
           }
           if (spannerType.equals("INT64")) {
             return t(Type.int64(), null);
+          }
+          if (spannerType.equals("FLOAT32")) {
+            return t(Type.float32(), null);
           }
           if (spannerType.equals("FLOAT64")) {
             return t(Type.float64(), null);
@@ -208,6 +215,9 @@ public final class SizedType {
           }
           if (spannerType.equals("bigint")) {
             return t(Type.pgInt8(), null);
+          }
+          if (spannerType.equals("real")) {
+            return t(Type.pgFloat4(), null);
           }
           if (spannerType.equals("double precision")) {
             return t(Type.pgFloat8(), null);

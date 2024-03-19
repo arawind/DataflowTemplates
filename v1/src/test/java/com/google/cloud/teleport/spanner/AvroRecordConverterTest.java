@@ -153,8 +153,8 @@ public class AvroRecordConverterTest {
   }
 
   @Test
-  public void floatArray() {
-    String colName = "arrayoffloat";
+  public void float64Array() {
+    String colName = "arrayoffloat64";
     Schema schema = createArrayAvroSchema(colName, DOUBLE);
 
     // Null field
@@ -213,8 +213,8 @@ public class AvroRecordConverterTest {
   }
 
   @Test
-  public void testParseFloat() {
-    String colName = "float";
+  public void testParseFloat64() {
+    String colName = "float64";
     Table.Builder tableBuilder = Table.builder();
     tableBuilder.name("record").column(colName).type(Type.float64()).endColumn();
 
@@ -256,6 +256,103 @@ public class AvroRecordConverterTest {
     final GenericRecord avroRecord1 =
         new GenericRecordBuilder(createAvroSchema(colName, BOOLEAN)).set(colName, false).build();
     assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecord1));
+  }
+
+  @Test
+  public void float32Array() {
+    String colName = "arrayoffloat32";
+    Schema schema = createArrayAvroSchema(colName, FLOAT);
+
+    // Null field
+    GenericRecord avroRecord = new GenericRecordBuilder(schema).set("id", 0).build();
+    Optional<List<Float>> result = AvroRecordConverter.readFloat32Array(avroRecord, FLOAT, colName);
+    assertFalse(result.isPresent());
+
+    // Convert from float to Float32.
+    avroRecord = new GenericRecordBuilder(schema).set("id", 0).set(colName, floatArray).build();
+    result = AvroRecordConverter.readFloat32Array(avroRecord, FLOAT, colName);
+    assertArrayEquals(floatArray.toArray(), result.get().toArray());
+
+    // Convert from int to Float32.
+    avroRecord = new GenericRecordBuilder(schema).set("id", 0).set(colName, intArray).build();
+    result = AvroRecordConverter.readFloat32Array(avroRecord, INT, colName);
+    assertArrayEquals(floatArray.toArray(), result.get().toArray());
+
+    // Convert from String to Float32.
+    avroRecord = new GenericRecordBuilder(schema).set("id", 0).set(colName, stringArray).build();
+    result = AvroRecordConverter.readFloat32Array(avroRecord, STRING, colName);
+    assertArrayEquals(floatArray.toArray(), result.get().toArray());
+
+    // Other types throw exception.
+    final GenericRecord avroRecordBool =
+        new GenericRecordBuilder(schema).set("id", 0).set(colName, booleanArray).build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> AvroRecordConverter.readFloat32Array(avroRecordBool, BOOLEAN, colName));
+    final GenericRecord avroRecordDouble =
+        new GenericRecordBuilder(schema).set("id", 0).set(colName, doubleArray).build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> AvroRecordConverter.readFloat32Array(avroRecordDouble, DOUBLE, colName));
+    final GenericRecord avroRecordLong =
+        new GenericRecordBuilder(schema).set("id", 0).set(colName, longArray).build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> AvroRecordConverter.readFloat32Array(avroRecordLong, LONG, colName));
+
+    Table.Builder tableBuilder = Table.builder();
+    tableBuilder
+        .name("record")
+        .column("id")
+        .type(Type.int64())
+        .endColumn()
+        .column(colName)
+        .type(Type.array(Type.float32()))
+        .endColumn();
+    avroRecord = new GenericRecordBuilder(schema).set("id", 1L).set(colName, floatArray).build();
+    AvroRecordConverter avroRecordConverter = new AvroRecordConverter(tableBuilder.build());
+    Mutation mutation = avroRecordConverter.apply(avroRecord);
+    assertArrayEquals(
+        floatArray.toArray(),
+        mutation.asMap().get(colName).getFloat32Array().toArray(new Float[0]));
+  }
+
+  @Test
+  public void testParseFloat32() {
+    String colName = "float32";
+    Table.Builder tableBuilder = Table.builder();
+    tableBuilder.name("record").column(colName).type(Type.float32()).endColumn();
+
+    // float to float32
+    GenericRecord avroRecord =
+        new GenericRecordBuilder(createAvroSchema(colName, FLOAT)).set(colName, 10.6f).build();
+    final AvroRecordConverter avroRecordConverter = new AvroRecordConverter(tableBuilder.build());
+    Mutation mutation = avroRecordConverter.apply(avroRecord);
+    assertEquals(10.6f, mutation.asMap().get(colName).getFloat32(), 0.000001);
+
+    // int to float32
+    avroRecord = new GenericRecordBuilder(createAvroSchema(colName, INT)).set(colName, 9).build();
+    mutation = avroRecordConverter.apply(avroRecord);
+    assertEquals(9.0f, mutation.asMap().get(colName).getFloat32(), 0.000001);
+
+    // string to float32
+    avroRecord =
+        new GenericRecordBuilder(createAvroSchema(colName, STRING))
+            .set(colName, new Utf8("15.3"))
+            .build();
+    mutation = avroRecordConverter.apply(avroRecord);
+    assertEquals(15.3, mutation.asMap().get(colName).getFloat32(), 0.000001);
+
+    // other types throw exception
+    final GenericRecord avroRecordBool =
+        new GenericRecordBuilder(createAvroSchema(colName, BOOLEAN)).set(colName, false).build();
+    assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordBool));
+    final GenericRecord avroRecordDouble =
+        new GenericRecordBuilder(createAvroSchema(colName, DOUBLE)).set(colName, 10.5).build();
+    assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordDouble));
+    final GenericRecord avroRecordLong =
+        new GenericRecordBuilder(createAvroSchema(colName, LONG)).set(colName, 10L).build();
+    assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordLong));
   }
 
   @Test
