@@ -106,6 +106,8 @@ class MutationSizeEstimator {
     switch (v.getType().getCode()) {
       case BOOL:
         return 1;
+      case FLOAT32:
+        return 4;
       case INT64:
       case FLOAT64:
         return 8;
