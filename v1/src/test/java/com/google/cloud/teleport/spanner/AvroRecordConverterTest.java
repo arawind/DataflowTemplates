@@ -259,7 +259,7 @@ public class AvroRecordConverterTest {
   }
 
   @Test
-  public void float32Array() {
+  public void parsefloat32Array() {
     String colName = "arrayoffloat32";
     Schema schema = createArrayAvroSchema(colName, FLOAT);
 
@@ -299,6 +299,14 @@ public class AvroRecordConverterTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> AvroRecordConverter.readFloat32Array(avroRecordLong, LONG, colName));
+    final List<Utf8> nonNumberStringArray =
+        Arrays.asList(new Utf8("d1"), new Utf8("d2"), new Utf8("d3"), null);
+    final GenericRecord avroRecordNonNumberStringArray =
+        new GenericRecordBuilder(schema).set("id", 0).set(colName, nonNumberStringArray).build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            AvroRecordConverter.readFloat32Array(avroRecordNonNumberStringArray, STRING, colName));
 
     Table.Builder tableBuilder = Table.builder();
     tableBuilder
@@ -318,7 +326,7 @@ public class AvroRecordConverterTest {
   }
 
   @Test
-  public void testParseFloat32() {
+  public void parseFloat32() {
     String colName = "float32";
     Table.Builder tableBuilder = Table.builder();
     tableBuilder.name("record").column(colName).type(Type.float32()).endColumn();
@@ -353,6 +361,12 @@ public class AvroRecordConverterTest {
     final GenericRecord avroRecordLong =
         new GenericRecordBuilder(createAvroSchema(colName, LONG)).set(colName, 10L).build();
     assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordLong));
+    final GenericRecord avroRecordBadString =
+        new GenericRecordBuilder(createAvroSchema(colName, STRING))
+            .set(colName, new Utf8("NotNumber"))
+            .build();
+    assertThrows(
+        IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordBadString));
   }
 
   @Test
