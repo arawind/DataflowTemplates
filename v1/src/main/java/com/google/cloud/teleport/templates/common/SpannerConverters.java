@@ -16,8 +16,6 @@
 package com.google.cloud.teleport.templates.common;
 
 import com.google.auto.value.AutoValue;
-import com.google.cloud.Date;
-import com.google.cloud.Timestamp;
 import com.google.cloud.spanner.BatchReadOnlyTransaction;
 import com.google.cloud.spanner.DatabaseClient;
 import com.google.cloud.spanner.Dialect;
@@ -635,15 +633,19 @@ public class SpannerConverters {
         return currentRow.getPgJsonbList(columnName);
       case BYTES:
         return currentRow.getBytesList(columnName).stream()
-            .map(byteArray -> Base64.getEncoder().encodeToString(byteArray.toByteArray()))
+            .map(
+                (byteArray) ->
+                    (byteArray == null)
+                        ? null
+                        : Base64.getEncoder().encodeToString(byteArray.toByteArray()))
             .collect(Collectors.toList());
       case DATE:
         return currentRow.getDateList(columnName).stream()
-            .map(Date::toString)
+            .map((d) -> (d == null) ? null : d.toString())
             .collect(Collectors.toList());
       case TIMESTAMP:
         return currentRow.getTimestampList(columnName).stream()
-            .map(Timestamp::toString)
+            .map((t) -> (t == null) ? null : t.toString())
             .collect(Collectors.toList());
       default:
         throw new RuntimeException("Unsupported type: " + code);
@@ -723,30 +725,52 @@ public class SpannerConverters {
     Code code = currentRow.getColumnType(columnName).getArrayElementType().getCode();
     switch (code) {
       case BOOL:
-        return GSON.toJson(currentRow.getBooleanArray(columnName));
+        return GSON.toJson(currentRow.getBooleanList(columnName));
       case INT64:
-        return GSON.toJson(currentRow.getLongArray(columnName));
+        return GSON.toJson(currentRow.getLongList(columnName));
       case FLOAT32:
-        return GSON.toJson(currentRow.getFloatArray(columnName));
+        return GSON.toJson(
+            currentRow.getFloatList(columnName).stream()
+                .map(
+                    f -> {
+                      if (f == null || Float.isFinite(f)) {
+                        return f;
+                      }
+                      return Float.toString(f);
+                    })
+                .collect(Collectors.toList()));
       case FLOAT64:
-        return GSON.toJson(currentRow.getDoubleArray(columnName));
+        return GSON.toJson(
+            currentRow.getDoubleList(columnName).stream()
+                .map(
+                    d -> {
+                      if (d == null || Double.isFinite(d)) {
+                        return d;
+                      }
+                      return Double.toString(d);
+                    })
+                .collect(Collectors.toList()));
       case STRING:
       case PG_NUMERIC:
         return GSON.toJson(currentRow.getStringList(columnName));
       case BYTES:
         return GSON.toJson(
             currentRow.getBytesList(columnName).stream()
-                .map(byteArray -> Base64.getEncoder().encodeToString(byteArray.toByteArray()))
+                .map(
+                    (byteArray) ->
+                        (byteArray == null)
+                            ? null
+                            : Base64.getEncoder().encodeToString(byteArray.toByteArray()))
                 .collect(Collectors.toList()));
       case DATE:
         return GSON.toJson(
             currentRow.getDateList(columnName).stream()
-                .map(Date::toString)
+                .map((d) -> (d == null) ? null : d.toString())
                 .collect(Collectors.toList()));
       case TIMESTAMP:
         return GSON.toJson(
             currentRow.getTimestampList(columnName).stream()
-                .map(Timestamp::toString)
+                .map((t) -> (t == null) ? null : t.toString())
                 .collect(Collectors.toList()));
       default:
         throw new RuntimeException("Unsupported type: " + code);

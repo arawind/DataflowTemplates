@@ -42,6 +42,7 @@ import java.io.Serializable;
 import java.nio.channels.ReadableByteChannel;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 import org.apache.beam.sdk.io.FileSystems;
@@ -234,6 +235,18 @@ public class SpannerConverterTest implements Serializable {
     assertEquals(
         "\"0.1\"",
         structCsvPrinter.print(Struct.newBuilder().set("col").to(Value.float32(0.1f)).build()));
+    assertEquals(
+        "\"NaN\"",
+        structCsvPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float32(Float.NaN)).build()));
+    assertEquals(
+        "\"Infinity\"",
+        structCsvPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float32(Float.POSITIVE_INFINITY)).build()));
+    assertEquals(
+        "\"-Infinity\"",
+        structCsvPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float32(Float.NEGATIVE_INFINITY)).build()));
   }
 
   @Test
@@ -241,6 +254,18 @@ public class SpannerConverterTest implements Serializable {
     assertEquals(
         "\"0.1\"",
         structCsvPrinter.print(Struct.newBuilder().set("col").to(Value.float64(0.1)).build()));
+    assertEquals(
+        "\"NaN\"",
+        structCsvPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float64(Double.NaN)).build()));
+    assertEquals(
+        "\"Infinity\"",
+        structCsvPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float64(Double.POSITIVE_INFINITY)).build()));
+    assertEquals(
+        "\"-Infinity\"",
+        structCsvPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float64(Double.NEGATIVE_INFINITY)).build()));
   }
 
   @Test
@@ -290,6 +315,13 @@ public class SpannerConverterTest implements Serializable {
         "\"[true]\"",
         structCsvPrinter.print(
             Struct.newBuilder().set("col").to(Value.boolArray(new boolean[] {true})).build()));
+    assertEquals(
+        "\"[true,null,false]\"",
+        structCsvPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.boolArray(Arrays.asList(true, null, false)))
+                .build()));
   }
 
   @Test
@@ -300,6 +332,13 @@ public class SpannerConverterTest implements Serializable {
             Struct.newBuilder()
                 .set("col")
                 .to(Value.stringArray(Collections.singletonList("test")))
+                .build()));
+    assertEquals(
+        "\"[\"\"test\"\",null]\"",
+        structCsvPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.stringArray(Arrays.asList("test", null)))
                 .build()));
   }
 
@@ -338,6 +377,13 @@ public class SpannerConverterTest implements Serializable {
         "\"[1]\"",
         structCsvPrinter.print(
             Struct.newBuilder().set("col").to(Value.int64Array(new long[] {1})).build()));
+    assertEquals(
+        "\"[123456789,null,-123]\"",
+        structCsvPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.int64Array(Arrays.asList(123456789L, null, -123L)))
+                .build()));
   }
 
   @Test
@@ -349,6 +395,25 @@ public class SpannerConverterTest implements Serializable {
   }
 
   @Test
+  public void testFloat32ArrayWithNullsAndNonNumbers() {
+    assertEquals(
+        "\"[0.1,null,\"\"NaN\"\",\"\"Infinity\"\",\"\"-Infinity\"\",3.4028235E38]\"",
+        structCsvPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(
+                    Value.float32Array(
+                        Arrays.asList(
+                            0.1f,
+                            null,
+                            Float.NaN,
+                            Float.POSITIVE_INFINITY,
+                            Float.NEGATIVE_INFINITY,
+                            Float.MAX_VALUE)))
+                .build()));
+  }
+
+  @Test
   public void testFloat64Array() {
     assertEquals(
         "\"[0.1]\"",
@@ -357,50 +422,65 @@ public class SpannerConverterTest implements Serializable {
   }
 
   @Test
-  public void testDateArray() {
+  public void testFloat64ArrayWithNullsAndNonNumbers() {
     assertEquals(
-        "\"[\"\"2018-03-26\"\"]\"",
+        "\"[0.1,null,\"\"NaN\"\",\"\"Infinity\"\",\"\"-Infinity\"\",1.7976931348623157E308]\"",
         structCsvPrinter.print(
             Struct.newBuilder()
                 .set("col")
-                .to(Value.dateArray(Collections.singletonList(Date.fromYearMonthDay(2018, 3, 26))))
+                .to(
+                    Value.float64Array(
+                        Arrays.asList(
+                            0.1,
+                            null,
+                            Double.NaN,
+                            Double.POSITIVE_INFINITY,
+                            Double.NEGATIVE_INFINITY,
+                            Double.MAX_VALUE)))
+                .build()));
+  }
+
+  @Test
+  public void testDateArray() {
+    assertEquals(
+        "\"[\"\"2018-03-26\"\",null]\"",
+        structCsvPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.dateArray(Arrays.asList(Date.fromYearMonthDay(2018, 3, 26), null)))
                 .build()));
   }
 
   @Test
   public void testTimestampArray() {
     assertEquals(
-        "\"[\"\"1970-01-01T00:00:00Z\"\"]\"",
+        "\"[\"\"1970-01-01T00:00:00Z\"\",null]\"",
         structCsvPrinter.print(
             Struct.newBuilder()
                 .set("col")
-                .to(
-                    Value.timestampArray(
-                        Collections.singletonList(Timestamp.ofTimeMicroseconds(0))))
+                .to(Value.timestampArray(Arrays.asList(Timestamp.ofTimeMicroseconds(0), null)))
                 .build()));
   }
 
   @Test
   public void testBytesArray() {
     assertEquals(
-        "\"[\"\"dGVzdA==\"\"]\"",
+        "\"[\"\"dGVzdA==\"\",null]\"",
         structCsvPrinter.print(
             Struct.newBuilder()
                 .set("col")
-                .to(Value.bytesArray(Collections.singletonList(ByteArray.copyFrom("test"))))
+                .to(Value.bytesArray(Arrays.asList(ByteArray.copyFrom("test"), null)))
                 .build()));
   }
 
   @Test
   public void testPgNumericArray() {
     assertEquals(
-        "\"[\"\"-25398514232141142.0014578090\"\"]\"",
+        "\"[\"\"-25398514232141142.0014578090\"\",null]\"",
         structCsvPrinter.print(
             Struct.newBuilder()
                 .set("col")
-                .to(
-                    Value.pgNumericArray(
-                        Collections.singletonList("-25398514232141142.0014578090")))
+                .to(Value.pgNumericArray(Arrays.asList("-25398514232141142.0014578090", null)))
                 .build()));
   }
 
@@ -423,6 +503,18 @@ public class SpannerConverterTest implements Serializable {
     assertEquals(
         "{\"col\":\"0.1\"}",
         structJSONPrinter.print(Struct.newBuilder().set("col").to(Value.float32(0.1f)).build()));
+    assertEquals(
+        "{\"col\":\"NaN\"}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float32(Float.NaN)).build()));
+    assertEquals(
+        "{\"col\":\"Infinity\"}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float32(Float.POSITIVE_INFINITY)).build()));
+    assertEquals(
+        "{\"col\":\"-Infinity\"}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float32(Float.NEGATIVE_INFINITY)).build()));
   }
 
   @Test
@@ -430,6 +522,18 @@ public class SpannerConverterTest implements Serializable {
     assertEquals(
         "{\"col\":\"0.1\"}",
         structJSONPrinter.print(Struct.newBuilder().set("col").to(Value.float64(0.1)).build()));
+    assertEquals(
+        "{\"col\":\"NaN\"}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float64(Double.NaN)).build()));
+    assertEquals(
+        "{\"col\":\"Infinity\"}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float64(Double.POSITIVE_INFINITY)).build()));
+    assertEquals(
+        "{\"col\":\"-Infinity\"}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.float64(Double.NEGATIVE_INFINITY)).build()));
   }
 
   @Test
@@ -490,6 +594,13 @@ public class SpannerConverterTest implements Serializable {
         "{\"col\":[\"true\"]}",
         structJSONPrinter.print(
             Struct.newBuilder().set("col").to(Value.boolArray(new boolean[] {true})).build()));
+    assertEquals(
+        "{\"col\":[\"true\",null,\"false\"]}",
+        structJSONPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.boolArray(Arrays.asList(true, null, false)))
+                .build()));
   }
 
   @Test
@@ -500,6 +611,13 @@ public class SpannerConverterTest implements Serializable {
             Struct.newBuilder()
                 .set("col")
                 .to(Value.stringArray(Collections.singletonList("test")))
+                .build()));
+    assertEquals(
+        "{\"col\":[\"test\",null]}",
+        structJSONPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.stringArray(Arrays.asList("test", null)))
                 .build()));
   }
 
@@ -531,22 +649,48 @@ public class SpannerConverterTest implements Serializable {
         "{\"col\":[\"1\"]}",
         structJSONPrinter.print(
             Struct.newBuilder().set("col").to(Value.int64Array(new long[] {1})).build()));
+    assertEquals(
+        "{\"col\":[\"1\",null]}",
+        structJSONPrinter.print(
+            Struct.newBuilder().set("col").to(Value.int64Array(Arrays.asList(1L, null))).build()));
   }
 
   @Test
   public void testFloat32ArrayWithJSONPrinter() {
     assertEquals(
-        "{\"col\":[\"0.1\"]}",
+        "{\"col\":[\"0.1\",null,\"NaN\",\"Infinity\",\"-Infinity\",\"3.4028235E38\"]}",
         structJSONPrinter.print(
-            Struct.newBuilder().set("col").to(Value.float32Array(new float[] {0.1f})).build()));
+            Struct.newBuilder()
+                .set("col")
+                .to(
+                    Value.float32Array(
+                        Arrays.asList(
+                            0.1f,
+                            null,
+                            Float.NaN,
+                            Float.POSITIVE_INFINITY,
+                            Float.NEGATIVE_INFINITY,
+                            Float.MAX_VALUE)))
+                .build()));
   }
 
   @Test
   public void testFloat64ArrayWithJSONPrinter() {
     assertEquals(
-        "{\"col\":[\"0.1\"]}",
+        "{\"col\":[\"0.1\",null,\"NaN\",\"Infinity\",\"-Infinity\",\"1.7976931348623157E308\"]}",
         structJSONPrinter.print(
-            Struct.newBuilder().set("col").to(Value.float64Array(new double[] {0.1})).build()));
+            Struct.newBuilder()
+                .set("col")
+                .to(
+                    Value.float64Array(
+                        Arrays.asList(
+                            0.1,
+                            null,
+                            Double.NaN,
+                            Double.POSITIVE_INFINITY,
+                            Double.NEGATIVE_INFINITY,
+                            Double.MAX_VALUE)))
+                .build()));
   }
 
   @Test
@@ -557,6 +701,13 @@ public class SpannerConverterTest implements Serializable {
             Struct.newBuilder()
                 .set("col")
                 .to(Value.dateArray(Collections.singletonList(Date.fromYearMonthDay(2018, 3, 26))))
+                .build()));
+    assertEquals(
+        "{\"col\":[\"2018-03-26\",null]}",
+        structJSONPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.dateArray(Arrays.asList(Date.fromYearMonthDay(2018, 3, 26), null)))
                 .build()));
   }
 
@@ -571,6 +722,13 @@ public class SpannerConverterTest implements Serializable {
                     Value.timestampArray(
                         Collections.singletonList(Timestamp.ofTimeMicroseconds(0))))
                 .build()));
+    assertEquals(
+        "{\"col\":[\"1970-01-01T00:00:00Z\",null]}",
+        structJSONPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.timestampArray(Arrays.asList(Timestamp.ofTimeMicroseconds(0), null)))
+                .build()));
   }
 
   @Test
@@ -581,6 +739,13 @@ public class SpannerConverterTest implements Serializable {
             Struct.newBuilder()
                 .set("col")
                 .to(Value.bytesArray(Collections.singletonList(ByteArray.copyFrom("test"))))
+                .build()));
+    assertEquals(
+        "{\"col\":[\"dGVzdA==\",null]}",
+        structJSONPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.bytesArray(Arrays.asList(ByteArray.copyFrom("test"), null)))
                 .build()));
   }
 
@@ -594,6 +759,13 @@ public class SpannerConverterTest implements Serializable {
                 .to(
                     Value.pgNumericArray(
                         Collections.singletonList("-25398514232141142.0014578090")))
+                .build()));
+    assertEquals(
+        "{\"col\":[\"-25398514232141142.0014578090\",null]}",
+        structJSONPrinter.print(
+            Struct.newBuilder()
+                .set("col")
+                .to(Value.pgNumericArray(Arrays.asList("-25398514232141142.0014578090", null)))
                 .build()));
   }
 
