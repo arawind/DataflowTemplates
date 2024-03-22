@@ -397,16 +397,6 @@ public class AvroRecordConverter implements SerializableFunction<GenericRecord, 
         // convertability to float can be verified.
       case FLOAT:
         return Optional.of((List<Float>) fieldValue);
-      case INT:
-        // Can cause loss of precision: un-representable integers will be rounded to the nearest
-        // float.
-        {
-          List<Integer> value = (List<Integer>) fieldValue;
-          return Optional.of(
-              value.stream()
-                  .map(x -> x == null ? null : Float.valueOf(x))
-                  .collect(Collectors.toList()));
-        }
       case STRING:
         {
           List<Utf8> value = (List<Utf8>) record.get(fieldName);
@@ -415,6 +405,8 @@ public class AvroRecordConverter implements SerializableFunction<GenericRecord, 
                   .map(x -> x == null ? null : Float.valueOf(x.toString()))
                   .collect(Collectors.toList()));
         }
+        // Avoid decoding integers as not all 32 bit integers can be represented in float32.
+      case INT:
         // Avoid decoding 64 bit values into 32 bit space as this will cause a precision loss.
       case LONG:
       case DOUBLE:
@@ -631,16 +623,14 @@ public class AvroRecordConverter implements SerializableFunction<GenericRecord, 
   private static Optional<Float> readFloat32(
       GenericRecord record, Schema.Type avroType, String fieldName) {
     switch (avroType) {
-      case INT:
-        // Can cause loss of precision: un-representable integers will be rounded to the nearest
-        // float.
-        return Optional.ofNullable((Integer) record.get(fieldName)).map(x -> (float) x);
       case FLOAT:
         return Optional.ofNullable((Float) record.get(fieldName));
       case STRING:
         return Optional.ofNullable((Utf8) record.get(fieldName))
             .map(Utf8::toString)
             .map(Float::valueOf);
+        // Avoid decoding integers as not all 32 bit integers can be represented in float32.
+      case INT:
         // Avoid decoding 64 bit values into 32 bit space as this will cause a precision loss.
       case LONG:
       case DOUBLE:

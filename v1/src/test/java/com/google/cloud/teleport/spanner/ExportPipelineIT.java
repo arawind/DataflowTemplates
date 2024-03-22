@@ -38,6 +38,7 @@ import org.apache.beam.it.gcp.artifacts.Artifact;
 import org.apache.beam.it.gcp.artifacts.utils.AvroTestUtil;
 import org.apache.beam.it.gcp.spanner.SpannerResourceManager;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,6 +78,20 @@ public class ExportPipelineIT extends TemplateTestBase {
                   + "    { \"name\": \"Id\", \"type\": \"long\", \"sqlType\": \"INT64\" },\n"
                   + "    { \"name\": \"FirstName\", \"type\": \"string\" },\n"
                   + "    { \"name\": \"LastName\", \"type\": \"string\" }\n"
+                  + "  ]\n"
+                  + "}");
+
+  private static final Schema FLOAT32_SCHEMA =
+      new Schema.Parser()
+          .parse(
+              "{\n"
+                  + "  \"type\": \"record\",\n"
+                  + "  \"name\": \"Float32\",\n"
+                  + "  \"namespace\": \"com.google.cloud.teleport.spanner\",\n"
+                  + "  \"fields\": [\n"
+                  + "    { \"name\": \"Id\", \"type\": \"long\", \"sqlType\": \"INT64\" },\n"
+                  + "    { \"name\": \"Rating\", \"type\": \"float\" },\n"
+                  + "    { \"name\": \"PastRatings\", \"type\": [\"null\" , {\"type\": \"array\", \"items\": [\"null\", \"float\"]}] }\n"
                   + "  ]\n"
                   + "}");
 
@@ -278,6 +293,91 @@ public class ExportPipelineIT extends TemplateTestBase {
     assertThatGenericRecords(emptyRecords).hasRows(0);
   }
 
+  @Test
+  public void spannerToGCSAvroWithFloat32() throws IOException {
+    // Arrange
+    String createFloat32TableStatement =
+        String.format(
+            "CREATE TABLE `%s_Float32` (\n"
+                + "  Id INT64 NOT NULL,\n"
+                + "  Rating FLOAT32,\n"
+                + "  PastRatings ARRAY<FLOAT32>,\n"
+                + ") PRIMARY KEY(Id)",
+            testName);
+
+    googleSqlResourceManager.executeDdlStatement(createFloat32TableStatement);
+    List<Mutation> expectedData = generateFloat32TableRows(String.format("%s_Float32", testName));
+    googleSqlResourceManager.write(expectedData);
+    PipelineLauncher.LaunchConfig.Builder options =
+        PipelineLauncher.LaunchConfig.builder(testName, specPath)
+            .addParameter("spannerProjectId", PROJECT)
+            .addParameter("instanceId", googleSqlResourceManager.getInstanceId())
+            .addParameter("databaseId", googleSqlResourceManager.getDatabaseId())
+            .addParameter("outputDir", getGcsPath("output/"));
+
+    // Act
+    PipelineLauncher.LaunchInfo info = launchTemplate(options);
+    assertThatPipeline(info).isRunning();
+    PipelineOperator.Result result = pipelineOperator().waitUntilDone(createConfig(info));
+
+    // Assert
+    assertThatResult(result).isLaunchFinished();
+
+    List<Artifact> float32TableArtifacts =
+        gcsClient.listArtifacts(
+            "output/", Pattern.compile(String.format(".*/%s_%s.*\\.avro.*", testName, "Flaot32")));
+
+    assertThat(float32TableArtifacts).isNotEmpty();
+
+    List<GenericRecord> float32TableRecords =
+        extractArtifacts(float32TableArtifacts, FLOAT32_SCHEMA);
+
+    assertThatGenericRecords(float32TableRecords)
+        .hasRecordsUnorderedCaseInsensitiveColumns(mutationsToRecords(expectedData));
+  }
+
+  @Test
+  public void postgresSpannerToGCSAvroWithFloat32() throws IOException {
+    // Arrange
+    String createFloat32TableStatement =
+        String.format(
+            "CREATE TABLE \"%s_Float32\" (\n"
+                + "  \"Id\" bigint,\n"
+                + "  \"Ratings\" real,\n"
+                + "  \"PastRatings\" real[],\n"
+                + "PRIMARY KEY(\"Id\"))",
+            testName);
+
+    postgresResourceManager.executeDdlStatement(createFloat32TableStatement);
+    List<Mutation> expectedData = generateFloat32TableRows(String.format("%s_Float32", testName));
+    postgresResourceManager.write(expectedData);
+    PipelineLauncher.LaunchConfig.Builder options =
+        PipelineLauncher.LaunchConfig.builder(testName, specPath)
+            .addParameter("spannerProjectId", PROJECT)
+            .addParameter("instanceId", postgresResourceManager.getInstanceId())
+            .addParameter("databaseId", postgresResourceManager.getDatabaseId())
+            .addParameter("outputDir", getGcsPath("output/"));
+
+    // Act
+    PipelineLauncher.LaunchInfo info = launchTemplate(options);
+    assertThatPipeline(info).isRunning();
+    PipelineOperator.Result result = pipelineOperator().waitUntilDone(createConfig(info));
+
+    // Assert
+    assertThatResult(result).isLaunchFinished();
+
+    List<Artifact> float32TableArtifacts =
+        gcsClient.listArtifacts(
+            "output/", Pattern.compile(String.format(".*/%s_%s.*\\.avro.*", testName, "Float32")));
+    assertThat(float32TableArtifacts).isNotEmpty();
+
+    List<GenericRecord> float32TableRecords =
+        extractArtifacts(float32TableArtifacts, FLOAT32_SCHEMA);
+
+    assertThatGenericRecords(float32TableRecords)
+        .hasRecordsUnorderedCaseInsensitiveColumns(mutationsToRecords(expectedData));
+  }
+
   private static List<Mutation> generateTableRows(String tableId) {
     List<Mutation> mutations = new ArrayList<>();
     for (int i = 0; i < MESSAGES_COUNT; i++) {
@@ -285,6 +385,25 @@ public class ExportPipelineIT extends TemplateTestBase {
       mutation.set("Id").to(i);
       mutation.set("FirstName").to(RandomStringUtils.randomAlphanumeric(1, 20));
       mutation.set("LastName").to(RandomStringUtils.randomAlphanumeric(1, 20));
+      mutations.add(mutation.build());
+    }
+
+    return mutations;
+  }
+
+  private static List<Mutation> generateFloat32TableRows(String tableId) {
+    List<Mutation> mutations = new ArrayList<>();
+    for (int i = 0; i < MESSAGES_COUNT; i++) {
+      Mutation.WriteBuilder mutation = Mutation.newInsertBuilder(tableId);
+      mutation.set("Id").to(i);
+      mutation.set("Rating").to(RandomUtils.nextFloat(-100, Float.MAX_VALUE));
+
+      List<Float> floatArray = new ArrayList<>();
+      for (int j = 0; j < RandomUtils.nextInt(0, 100); j++) {
+        floatArray.add(RandomUtils.nextFloat(-100, Float.MAX_VALUE));
+      }
+      mutation.set("PastRatings").toFloat32Array(floatArray);
+
       mutations.add(mutation.build());
     }
 

@@ -273,11 +273,6 @@ public class AvroRecordConverterTest {
     result = AvroRecordConverter.readFloat32Array(avroRecord, FLOAT, colName);
     assertArrayEquals(floatArray.toArray(), result.get().toArray());
 
-    // Convert from int to Float32.
-    avroRecord = new GenericRecordBuilder(schema).set("id", 0).set(colName, intArray).build();
-    result = AvroRecordConverter.readFloat32Array(avroRecord, INT, colName);
-    assertArrayEquals(floatArray.toArray(), result.get().toArray());
-
     // Convert from String to Float32.
     avroRecord = new GenericRecordBuilder(schema).set("id", 0).set(colName, stringArray).build();
     result = AvroRecordConverter.readFloat32Array(avroRecord, STRING, colName);
@@ -289,6 +284,11 @@ public class AvroRecordConverterTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> AvroRecordConverter.readFloat32Array(avroRecordBool, BOOLEAN, colName));
+    final GenericRecord avroRecordInt =
+        new GenericRecordBuilder(schema).set("id", 0).set(colName, intArray).build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> AvroRecordConverter.readFloat32Array(avroRecordInt, INT, colName));
     final GenericRecord avroRecordDouble =
         new GenericRecordBuilder(schema).set("id", 0).set(colName, doubleArray).build();
     assertThrows(
@@ -299,6 +299,8 @@ public class AvroRecordConverterTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> AvroRecordConverter.readFloat32Array(avroRecordLong, LONG, colName));
+
+    // Strings that are not number-like should fail parsing.
     final List<Utf8> nonNumberStringArray =
         Arrays.asList(new Utf8("d1"), new Utf8("d2"), new Utf8("d3"), null);
     final GenericRecord avroRecordNonNumberStringArray =
@@ -338,11 +340,6 @@ public class AvroRecordConverterTest {
     Mutation mutation = avroRecordConverter.apply(avroRecord);
     assertEquals(10.6f, mutation.asMap().get(colName).getFloat32(), 0.000001);
 
-    // int to float32
-    avroRecord = new GenericRecordBuilder(createAvroSchema(colName, INT)).set(colName, 9).build();
-    mutation = avroRecordConverter.apply(avroRecord);
-    assertEquals(9.0f, mutation.asMap().get(colName).getFloat32(), 0.000001);
-
     // string to float32
     avroRecord =
         new GenericRecordBuilder(createAvroSchema(colName, STRING))
@@ -355,12 +352,17 @@ public class AvroRecordConverterTest {
     final GenericRecord avroRecordBool =
         new GenericRecordBuilder(createAvroSchema(colName, BOOLEAN)).set(colName, false).build();
     assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordBool));
+    final GenericRecord avroRecordInt =
+        new GenericRecordBuilder(createAvroSchema(colName, INT)).set(colName, 9).build();
+    assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordInt));
     final GenericRecord avroRecordDouble =
         new GenericRecordBuilder(createAvroSchema(colName, DOUBLE)).set(colName, 10.5).build();
     assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordDouble));
     final GenericRecord avroRecordLong =
         new GenericRecordBuilder(createAvroSchema(colName, LONG)).set(colName, 10L).build();
     assertThrows(IllegalArgumentException.class, () -> avroRecordConverter.apply(avroRecordLong));
+
+    // Strings that are not number-like should fail parsing.
     final GenericRecord avroRecordBadString =
         new GenericRecordBuilder(createAvroSchema(colName, STRING))
             .set(colName, new Utf8("NotNumber"))
