@@ -118,6 +118,7 @@ public class InformationSchemaScannerIT {
             + " `arr_bytes_field`                       ARRAY<BYTES(MAX)>,"
             + " `arr_timestamp_field`                   ARRAY<TIMESTAMP>,"
             + " `arr_date_field`                        ARRAY<DATE>,"
+            + " `embedding_vector`                      ARRAY<FLOAT64>(vector_length=>16),"
             + " ) PRIMARY KEY (`first_name` ASC, `last_name` DESC, `id` ASC)";
 
     spannerServer.createDatabase(dbId, Collections.singleton(allTypes));
@@ -128,7 +129,7 @@ public class InformationSchemaScannerIT {
     assertThat(ddl.table("aLlTYPeS"), notNullValue());
 
     Table table = ddl.table("alltypes");
-    assertThat(table.columns(), hasSize(17));
+    assertThat(table.columns(), hasSize(18));
 
     // Check case sensitiveness.
     assertThat(table.column("first_name"), notNullValue());
@@ -157,6 +158,8 @@ public class InformationSchemaScannerIT {
     assertThat(table.column("arr_bytes_field").size(), equalTo(-1 /*max*/));
     assertThat(table.column("arr_timestamp_field").type(), equalTo(Type.array(Type.timestamp())));
     assertThat(table.column("arr_date_field").type(), equalTo(Type.array(Type.date())));
+    assertThat(table.column("embedding_vector").type(), equalTo(Type.array(Type.float64())));
+    assertThat(table.column("embedding_vector").arrayLength(), equalTo(16));
 
     // Check not-null.
     assertThat(table.column("first_name").notNull(), is(false));
@@ -202,6 +205,7 @@ public class InformationSchemaScannerIT {
             + " \"arr_timestamp_field\"                   timestamp with time zone[],"
             + " \"arr_date_field\"                        date[],"
             + " \"arr_numeric_field\"                     numeric[],"
+            + " \"embedding_vector\"                      double precision[] vector length 8,"
             + " PRIMARY KEY (\"first_name\", \"last_name\", \"id\")"
             + " )";
 
@@ -213,7 +217,7 @@ public class InformationSchemaScannerIT {
     assertThat(ddl.table("aLlTYPeS"), notNullValue());
 
     Table table = ddl.table("alltypes");
-    assertThat(table.columns(), hasSize(19));
+    assertThat(table.columns(), hasSize(20));
 
     // Check case sensitiveness.
     assertThat(table.column("first_name"), notNullValue());
@@ -243,6 +247,8 @@ public class InformationSchemaScannerIT {
         table.column("arr_timestamp_field").type(), equalTo(Type.pgArray(Type.pgTimestamptz())));
     assertThat(table.column("arr_date_field").type(), equalTo(Type.pgArray(Type.pgDate())));
     assertThat(table.column("arr_numeric_field").type(), equalTo(Type.pgArray(Type.pgNumeric())));
+    assertThat(table.column("embedding_vector").type(), equalTo(Type.pgArray(Type.pgFloat8())));
+    assertThat(table.column("embedding_vector").arrayLength(), equalTo(8));
 
     // Check not-null. Primary keys are implicitly forced to be not-null.
     assertThat(table.column("first_name").notNull(), is(true));

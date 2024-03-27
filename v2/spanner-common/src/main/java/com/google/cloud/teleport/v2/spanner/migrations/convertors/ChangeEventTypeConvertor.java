@@ -13,12 +13,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.google.cloud.teleport.v2.templates.datastream;
+package com.google.cloud.teleport.v2.spanner.migrations.convertors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.cloud.ByteArray;
 import com.google.cloud.Date;
 import com.google.cloud.Timestamp;
+import com.google.cloud.teleport.v2.spanner.migrations.exceptions.ChangeEventConvertorException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -78,7 +79,7 @@ public class ChangeEventTypeConvertor {
     try {
       JsonNode node = changeEvent.get(key);
       if (node.isTextual()) {
-        return Double.valueOf(node.asText()).longValue();
+        return Long.valueOf(node.asText());
       }
       return node.asLong();
 
