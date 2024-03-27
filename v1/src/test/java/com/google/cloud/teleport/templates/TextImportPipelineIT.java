@@ -241,6 +241,7 @@ public final class TextImportPipelineIT extends TemplateTestBase {
                 "FirstName",
                 "LastName",
                 "Active",
+                "Rating",
                 "Score",
                 "BirthDate",
                 "LastModified"));
@@ -279,7 +280,7 @@ public final class TextImportPipelineIT extends TemplateTestBase {
             + "  \"FirstName\"     character varying(256),\n"
             + "  \"LastName\"      character varying(256),\n"
             + "  \"Active\"        boolean,\n"
-            + "  \"Rating\"         real,\n"
+            + "  \"Rating\"        real,\n"
             + "  \"Score\"         double precision,\n"
             + "  \"BirthDate\"     date,\n"
             + "  \"LastModified\"  timestamp with time zone,\n"
@@ -339,6 +340,7 @@ public final class TextImportPipelineIT extends TemplateTestBase {
                 "FirstName",
                 "LastName",
                 "Active",
+                "Rating",
                 "Score",
                 "BirthDate",
                 "LastModified"));
